@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define AES_BLOCK_SIZE 16
+
 typedef enum _AESKeyOption_
 {
 	AES_128,
@@ -18,5 +20,6 @@ typedef struct _AES_
 } AES;
 
 void AES_Init(AES* aes, void* key, AESKeyOption option);
+size_t AES_CBC_Encrypt(AES* aes, void* data, size_t size, void* iv);
 
 #endif
