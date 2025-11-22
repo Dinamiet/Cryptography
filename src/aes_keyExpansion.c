@@ -2,59 +2,43 @@
 
 #include "aes_lookup.h"
 
-static uint32_t subRcon(uint32_t word, size_t itt);
+static uint32_t subWord(uint32_t word);
+static uint32_t rotWord(uint32_t word);
 
-static uint32_t subRcon(uint32_t word, size_t itt)
+static uint32_t subWord(uint32_t word)
 {
-	// Rotate
-	word = (word >> (3 * BITS_IN_BYTE)) | (word << (BITS_IN_BYTE));
-
 	uint32_t sword = 0;
-	for (size_t i = 0; i < sizeof(sword); i++)
+	for (size_t i = 0; i < WORD_SIZE; i++)
 	{
 		uint8_t byte = (uint8_t)(word >> (i * BITS_IN_BYTE));
 		sword |= sbox[byte] << (i * BITS_IN_BYTE);
 	}
-
-	sword ^= rcon[itt] << ((sizeof(sword) - 1) * BITS_IN_BYTE);
 	return sword;
 }
 
-void keyExpansion(uint8_t* expandedKey, uint8_t* key, size_t keySize, size_t expandedSize)
+static uint32_t rotWord(uint32_t word) { return (word >> ((WORD_SIZE - 1) * BITS_IN_BYTE)) | (word << (BITS_IN_BYTE)); }
+
+void keyExpansion(void* _expandedKey, void* _key, size_t keySize, size_t numRounds)
 {
-	for (size_t i = 0; i < keySize; i++) { expandedKey[i] = key[i]; }
-
-	size_t rcon_itt = 1;
-
-	size_t expandProgress = keySize;
-	while (expandProgress < expandedSize)
+	uint8_t*  expandedByte = _expandedKey;
+	uint32_t* expandedWord = _expandedKey;
+	uint8_t*  key          = _key;
+	size_t    Nk           = keySize / WORD_SIZE;
+	size_t    i            = 0;
+	while (i <= Nk - 1)
 	{
-		uint32_t t = 0;
-		for (size_t i = 0; i < sizeof(t); i++)
-		{
-			uint8_t byte = expandedKey[(expandProgress - sizeof(t)) + i];
-			t += byte << ((sizeof(t) - (i + 1)) * BITS_IN_BYTE);
-		}
+		for (size_t k = 0; k < WORD_SIZE; k++) { expandedByte[WORD_SIZE * i + k] = key[WORD_SIZE * i + k]; }
+		++i;
+	}
 
-		if (expandProgress % keySize == 0)
-			t = subRcon(t, rcon_itt++);
-
-		if (keyOption == AES_256 && expandProgress % keySize == 16)
-		{
-			uint32_t t_new = 0;
-			for (size_t i = 0; i < sizeof(t); i++)
-			{
-				uint8_t byte = (uint8_t)(t >> (i * BITS_IN_BYTE));
-				t_new += sbox[byte] << (i * BITS_IN_BYTE);
-			}
-			t = t_new;
-		}
-
-		for (size_t i = 0; i < sizeof(t); i++)
-		{
-			uint8_t byte                = (uint8_t)(t >> ((sizeof(t) - (i + 1)) * BITS_IN_BYTE));
-			expandedKey[expandProgress] = expandedKey[expandProgress - keySize] ^ byte;
-			++expandProgress;
-		}
+	while (i <= 4 * numRounds + 3)
+	{
+		uint32_t temp = BIG_ENDIAN_32(expandedWord[i - 1]);
+		if (i % Nk == 0)
+			temp = subWord(rotWord(temp)) ^ (rcon[i / Nk] << ((WORD_SIZE - 1) * BITS_IN_BYTE));
+		else if (Nk > 6 && i % Nk == WORD_SIZE)
+			temp = subWord(temp);
+		expandedWord[i] = expandedWord[i - Nk] ^ BIG_ENDIAN_32(temp);
+		++i;
 	}
 }
