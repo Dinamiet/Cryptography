@@ -1,19 +1,7 @@
 #include "aes.h"
 #include "aes_rounds.h"
 
-#include <stdio.h>
-
-void print_matrix(char* Name, size_t round, uint8_t* values)
-{
-	printf("-------------------\n");
-	printf("%s(%ld):\n", Name, round);
-	for (int i = 0; i < 4; ++i)
-	{
-		for (int j = 0; j < 16 / 4; ++j) { printf("%2.2x ", values[4 * j + i]); }
-		printf("\n");
-	}
-	printf("-------------------\n");
-}
+#include <string.h>
 
 static void encrypt(AES* aes, void* data);
 
@@ -22,24 +10,16 @@ static void encrypt(AES* aes, void* data)
 	size_t round = 0;
 	addRoundKey(data, aes->ExpandedKey, round++);
 
-	print_matrix("addRoundKey", round, data);
-
 	while (round <= aes->Rounds)
 	{
 		subbytes(data);
-		print_matrix("subBytes", round, data);
 
 		shiftRows(data);
-		print_matrix("shiftRows", round, data);
 
 		if (round < aes->Rounds)
-		{
 			mixColumns(data);
-			print_matrix("mixColumns", round, data);
-		}
 
 		addRoundKey(data, aes->ExpandedKey, round++);
-		print_matrix("addRoundKey", round, data);
 	}
 }
 
