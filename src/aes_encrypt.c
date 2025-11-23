@@ -49,8 +49,9 @@ size_t AES_CBC_Encrypt(AES* aes, void* _data, size_t size, bool addPadding)
 			size -= sizeof(block);
 		}
 		for (size_t i = 0; i < AES_BLOCK_SIZE; i++) { block[i] ^= aes->IV[i]; }
-		encrypt(aes, data);
-		for (size_t i = 0; i < AES_BLOCK_SIZE; i++) { aes->IV[i] = block[i]; }
+		encrypt(aes, block);
+		memcpy(data, block, sizeof(block));
+		memcpy(aes->IV, block, sizeof(aes->IV));
 
 		encrypted += AES_BLOCK_SIZE;
 		data += AES_BLOCK_SIZE;
