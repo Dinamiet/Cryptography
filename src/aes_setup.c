@@ -24,7 +24,7 @@ void AES_Init(AES* aes, void* iv, void* key, AESKeyOption option)
 			break;
 	}
 
-	memset(aes->ExpandedKey, 0, 240);
+	memset(aes->ExpandedKey, 0, sizeof(aes->ExpandedKey));
 	keyExpansion(aes->ExpandedKey, key, keySize, aes->Rounds);
 	memcpy(aes->IV, iv, sizeof(aes->IV));
 }
