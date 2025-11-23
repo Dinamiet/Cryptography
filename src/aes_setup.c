@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-void AES_Init(AES* aes, void* key, AESKeyOption option)
+void AES_Init(AES* aes, void* iv, void* key, AESKeyOption option)
 {
 	size_t keySize = 0;
 	switch (option)
@@ -26,4 +26,5 @@ void AES_Init(AES* aes, void* key, AESKeyOption option)
 
 	memset(aes->ExpandedKey, 0, 240);
 	keyExpansion(aes->ExpandedKey, key, keySize, aes->Rounds);
+	memcpy(aes->IV, iv, sizeof(aes->IV));
 }

@@ -23,22 +23,37 @@ static void encrypt(AES* aes, void* data)
 	}
 }
 
-size_t AES_CBC_Encrypt(AES* aes, void* _data, size_t size, void* _iv)
+size_t AES_CBC_Encrypt(AES* aes, void* _data, size_t size, bool addPadding)
 {
 	uint8_t* data = _data;
-	uint8_t* iv   = _iv;
 
 	size_t encrypted = 0;
 
-	while (size >= AES_BLOCK_SIZE)
+	uint8_t block[AES_BLOCK_SIZE];
+	while (size)
 	{
-		for (size_t i = 0; i < AES_BLOCK_SIZE; i++) { data[i] ^= iv[i]; }
+		if (size < AES_BLOCK_SIZE)
+		{
+			if (addPadding)
+			{
+				memset(block, 0, sizeof(block));
+				memcpy(block, data, size);
+			}
+			else
+				break;
+		}
+		else
+		{
+			memcpy(block, data, sizeof(block));
+		}
+		for (size_t i = 0; i < AES_BLOCK_SIZE; i++) { block[i] ^= aes->IV[i]; }
 		encrypt(aes, data);
-		for (size_t i = 0; i < AES_BLOCK_SIZE; i++) { iv[i] = data[i]; }
+		for (size_t i = 0; i < AES_BLOCK_SIZE; i++) { aes->IV[i] = block[i]; }
 
 		encrypted += AES_BLOCK_SIZE;
 		size -= AES_BLOCK_SIZE;
 		data += AES_BLOCK_SIZE;
 	}
+
 	return encrypted;
 }
